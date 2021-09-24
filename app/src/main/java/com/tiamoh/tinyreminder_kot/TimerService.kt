@@ -5,10 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
-import android.content.Context
+//import android.content.BroadcastReceiver
+//import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
+//import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
@@ -125,13 +125,12 @@ class TimerService : Service() {
             val channelId = "Tiny Reminder"
             val channelName = "실시간 알림"
             val channelDescription = "실시간으로 알림 설정 시간과 기록 시간을 알려드려요"
-            var notificationChannel: NotificationChannel? = null
-            notificationChannel =
-                NotificationChannel(
-                    channelId,
-                    channelName,
-                    NotificationManager.IMPORTANCE_DEFAULT
-                )
+            val notificationChannel =
+            NotificationChannel(
+                channelId,
+                channelName,
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
             notificationChannel.description = channelDescription
             notificationManager!!.createNotificationChannel(notificationChannel)
             notificationBuilder = NotificationCompat.Builder(applicationContext, channelId)
