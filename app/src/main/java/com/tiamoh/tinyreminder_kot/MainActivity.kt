@@ -1,14 +1,15 @@
 package com.tiamoh.tinyreminder_kot
 
 import android.app.TimePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.os.SystemClock
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
+    var isRun: Boolean = true
     var acc_time = 0
     var set_min: Int = 15
     var set_hour: Int = 0
@@ -27,7 +28,16 @@ class MainActivity : AppCompatActivity() {
         //val myTimePicker = findViewById<View>(R.id.timepicker) as TimePicker
         val setTerm = findViewById<TextView>(R.id.setNumber)
         val accTime = findViewById<TextView>(R.id.todayNumber)
+
         settingBtn.setBackgroundResource(R.drawable.settingicon)
+
+        //저 살아났어요
+        val serviceIntent = Intent(this, TimerService::class.java)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", true)
+        startService(serviceIntent)
+
+        //나중에 앱 재실행시에 액티비티 데이터 튀는거 매니지용
+        //알람 설정 시간 변경 버튼이 눌릴 시
         settingBtn.setOnClickListener {
             val timeDialog =
                 TimePickerDialog(
@@ -54,13 +64,25 @@ class MainActivity : AppCompatActivity() {
             timeDialog.setTitle("알람 간격을 설정하세요:")
             timeDialog.window!!.setBackgroundDrawableResource(android.R.color.transparent)
             timeDialog.show()
+            timeDialog.setOnDismissListener {
+                //이거 인텍트 전달해야함
+                val serviceIntent = Intent(this, TimerService::class.java)
+                serviceIntent.putExtra("SETTING", set_hour * 60 + set_min)
+                startService(serviceIntent)
+            }
         }
+
+        //토글버튼인 스타트 버튼이 눌릴 시
         startBtn.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                //chronometer.setBase(SystemClock.elapsedRealtime())
-                //chronometer.start()
+                val serviceIntent = Intent(this, TimerService::class.java)
+                serviceIntent.putExtra("MODE", set_hour * 60 + set_min)
+                startService(serviceIntent)
             } else {
-                //chronometer.stop()
+                val serviceIntent = Intent(this, TimerService::class.java)
+                serviceIntent.putExtra("MODE", 0)
+                stopService(serviceIntent)
+                //TimeTick 받아와야 함
                 acc_time += timeTick
                 hour = acc_time / 3600
                 min = (acc_time - hour * 3600) / 60
@@ -79,6 +101,14 @@ class MainActivity : AppCompatActivity() {
 
         }
 
+    }
+
+    override fun onDestroy() {
+        //저 죽어요
+        val serviceIntent = Intent(this, TimerService::class.java)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", false)
+        startService(serviceIntent)
+        super.onDestroy()
     }
 
     private fun showToast(message: String) {
