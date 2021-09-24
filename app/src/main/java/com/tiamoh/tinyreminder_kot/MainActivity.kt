@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
     var timeTick = 0
     //val startTime: Long = SystemClock.elapsedRealtime()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
+        override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
