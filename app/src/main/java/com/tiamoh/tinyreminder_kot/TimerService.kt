@@ -198,7 +198,7 @@ class TimerService : Service() {
             notificationBuilder = NotificationCompat.Builder(applicationContext)
         }
         //notification 내용 작성
-        notificationBuilder!!.setSmallIcon(R.drawable.star_on)
+        notificationBuilder!!.setSmallIcon(R.drawable.star_off)
         notificationBuilder!!.setWhen(System.currentTimeMillis())
         notificationBuilder!!.setContentTitle(
             String.format(
@@ -213,6 +213,7 @@ class TimerService : Service() {
             ) + " : " + String.format("%02d", min) + " : " + String.format("%02d", sec)
         )
         notificationBuilder!!.setOngoing(true)
+        notificationBuilder!!.setOnlyAlertOnce(true)
         val notifyIntent = Intent(applicationContext, MainActivity::class.java)
         val pIntent = PendingIntent.getActivity(
             applicationContext,
