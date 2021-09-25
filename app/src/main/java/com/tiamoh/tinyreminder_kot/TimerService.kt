@@ -97,33 +97,38 @@ class TimerService : Service() {
                     set_hour = set_term / 60
                     set_min = set_term - set_hour * 60
                     startTime = SystemClock.elapsedRealtime()
+                    //화면 꺼져도 소리알림은 울리게
+                    //(무제한 의도)
+                    w1.acquire()
                     //timerSwitch = true // 명시적으로 타이머 켬
                     //타이머 시작 버튼을 누르면 타이머 시작
                     //startForegroundService()
                     //TimerThread().run()
-                    timerTask = timer(period = 1000){
+                    timerTask = timer(period = 1000){//이거1000아래로 두면 알림 2번 울리는 수가 있음ㅋㅋㅋㅋㅋ
                         //더하기 말고 시작시간
                         time_tick = ((SystemClock.elapsedRealtime()-startTime)/1000).toInt()
                         //time_tick++
                         if (time_tick > 0 && time_tick % (set_min * 60 + set_hour * 3600) == 0) {
-                            //화면 꺼져도 소리알림은 울리게
-                            w1.acquire(5*1000L)//5초동안
+
                             showToast("설정한 시간이 되어 알려드렸어요!")
                             //val toast = Toast.makeText(this@TimerService, "설정한 시간이 되어 알려드렸어요!", Toast.LENGTH_SHORT)
                             //toast.show()
                             //그냥 기본 알림음이나 음성 재생하는 걸로... 미디어 받아와서 재생하는게 좋을 듯
+
                             val vib = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                             //vib.vibrate(longArrayOf(100, 150, 400, 150, 400, 150), -1)
                             val timing = longArrayOf(100, 150, 400, 150, 400, 150)
                             val amplitude =  intArrayOf(0,100,0,50,0,100)
                             val vibrationEffect = VibrationEffect.createWaveform(timing,amplitude,-1)
-                            vib.vibrate(vibrationEffect)
+
                             val notification =
                                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                             val ringtone =
                                 RingtoneManager.getRingtone(applicationContext, notification)
+
+                            vib.vibrate(vibrationEffect)
                             ringtone.play()
-                            w1.release()
+
                         }
                         hour = time_tick/3600
                         min = (time_tick - hour*3600)/60
@@ -141,6 +146,7 @@ class TimerService : Service() {
                     e.printStackTrace()
                 }
             } else if (modeVal == STOP) {
+                w1.release()
                 timerTask?.cancel()
                 stopSelf()
                 //타이머 종료 버튼을 누르면 타이머 종료
@@ -174,6 +180,7 @@ class TimerService : Service() {
         ) as PowerManager.WakeLock
     }
     override fun onDestroy() {
+        w1.release()
         timerTask?.cancel()
         super.onDestroy()
     }
