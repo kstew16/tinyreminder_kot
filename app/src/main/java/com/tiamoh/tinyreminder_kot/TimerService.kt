@@ -189,7 +189,7 @@ class TimerService : Service() {
             NotificationChannel(
                 channelId,
                 channelName,
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_LOW
             )
             notificationChannel.description = channelDescription
             notificationManager!!.createNotificationChannel(notificationChannel)

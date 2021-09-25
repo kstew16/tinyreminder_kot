@@ -140,7 +140,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onRestart() {
+        val serviceIntent = Intent(this, TimerService::class.java)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", true)
+        startService(serviceIntent)
+        super.onRestart()
 
+    }
+    override fun onStop(){
+        //저 죽어요
+        val serviceIntent = Intent(this, TimerService::class.java)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", false)
+        startService(serviceIntent)
+        super.onStop()
+    }
     override fun onDestroy() {
         //저 죽어요
         val serviceIntent = Intent(this, TimerService::class.java)
