@@ -23,10 +23,7 @@ class TimerService : Service() {
     private val OFF = 9999
     //val GOING = 9998
     private val STOP = 0
-    //화면 꺼져도 알림
-    private lateinit var pm : PowerManager
-    private lateinit var w1 : PowerManager.WakeLock
-    //액티비티 꺼지면 초 데이터 안 보냄 : 액티비티 안 켬
+
     var isActivityRun: Boolean = false
     //var timerSwitch: Boolean = false
 
@@ -106,8 +103,6 @@ class TimerService : Service() {
                         time_tick = ((SystemClock.elapsedRealtime()-startTime)/1000).toInt()
                         //time_tick++
                         if (time_tick > 0 && time_tick % (set_min * 60 + set_hour * 3600) == 0) {
-                            //화면 꺼져도 소리알림은 울리게
-                            w1.acquire(5*1000L)//5초동안
                             showToast("설정한 시간이 되어 알려드렸어요!")
                             //val toast = Toast.makeText(this@TimerService, "설정한 시간이 되어 알려드렸어요!", Toast.LENGTH_SHORT)
                             //toast.show()
@@ -123,7 +118,6 @@ class TimerService : Service() {
                             val ringtone =
                                 RingtoneManager.getRingtone(applicationContext, notification)
                             ringtone.play()
-                            w1.release()
                         }
                         hour = time_tick/3600
                         min = (time_tick - hour*3600)/60
@@ -165,14 +159,6 @@ class TimerService : Service() {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    override fun onCreate() {
-        super.onCreate()
-        pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        w1 = pm.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "com.tiamoh.tinyreminder_kot:tagForRemind"
-        ) as PowerManager.WakeLock
-    }
     override fun onDestroy() {
         timerTask?.cancel()
         super.onDestroy()
