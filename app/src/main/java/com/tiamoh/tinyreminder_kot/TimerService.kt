@@ -73,7 +73,7 @@ class TimerService : Service() {
         //showToast("Start Command receive")
         //이건 알람 간격 바뀌었을때
         //이거 아래로 가면 인텐트 디폴트가 15라서 밸류 리셋 됨.
-        val data = intent?.getIntExtra("SETTING", 15)
+        val data = intent?.getIntExtra("SETTING", set_term)
         if (data != null) {
             set_term = data
             set_hour = set_term / 60
