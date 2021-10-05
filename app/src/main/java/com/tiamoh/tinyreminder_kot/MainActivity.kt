@@ -2,13 +2,20 @@ package com.tiamoh.tinyreminder_kot
 
 import android.app.ActivityManager
 import android.app.TimePickerDialog
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
+import android.os.SystemClock
 import android.widget.CompoundButton
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,8 +29,14 @@ class MainActivity : AppCompatActivity() {
     var timeTick = 0
     //val startTime: Long = SystemClock.elapsedRealtime()
 
-        override fun onCreate(savedInstanceState: Bundle?) {
+
+
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        showToast("20211005 오후 9시 47분 sharedPref")
+
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
         val settingBtn = findViewById<ImageButton>(R.id.settingIcon)
@@ -35,13 +48,27 @@ class MainActivity : AppCompatActivity() {
 
         settingBtn.setBackgroundResource(R.drawable.settingicon)
 
+
         //저 살아났어요
         val serviceIntent = Intent(this, TimerService::class.java)
         serviceIntent.putExtra("ACTIVITY_RUNNING", true)
         startService(serviceIntent)
+        //데베관련
+        var dbHelper: DBHelper = DBHelper(this, "Accumulate.db", null, 1)
+        var database: SQLiteDatabase = dbHelper.writableDatabase
+        val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
+        var savedTerm = sharedPreferences.getInt("setTerm",15)
+
+        set_hour = savedTerm/60
+        set_min = savedTerm - (60*set_hour)
+        setTerm.text = String.format("%02d", set_hour) + " 시간 " + String.format(
+            "%02d",
+            set_min
+        ) + " 분"
+        //데이터베이스에 오늘 날짜로 저장된 것이 있으면 acc_time으로 불러와야 함함
 
 
-        //알람 설정 시간 변경 버튼이 눌릴 시
+       //알람 설정 시간 변경 버튼이 눌릴 시
         settingBtn.setOnClickListener {
             val timeDialog =
                 TimePickerDialog(
@@ -74,7 +101,22 @@ class MainActivity : AppCompatActivity() {
                 serviceIntent.putExtra("SETTING", set_hour * 60 + set_min)
                 serviceIntent.putExtra("ACTIVITY_RUNNING", true)
                 startService(serviceIntent)
+                //데이터베이스에 설정시간 저장 SharedPref 이용
+
+                    """
+            
+                var contentValues = ContentValues()
+                contentValues.put("setTerm",setTerm)
+                database.insert("termTable",null,contentValues)
+                """
+                val editor = sharedPreferences.edit()
+                var setTerm = set_hour * 60 + set_min
+                editor.putInt("setTerm",setTerm)
+                editor.commit()
+
             }
+
+
         }
 
         //토글버튼인 스타트 버튼이 눌릴 시
@@ -108,7 +150,21 @@ class MainActivity : AppCompatActivity() {
                     min
                 ) + " : " + String.format("%02d", sec)
                 timeTick = 0
-
+                var contentValue = ContentValues()
+                var nowMills = System.currentTimeMillis()
+                var date = Date(nowMills)
+                var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
+                var saveTime : String = simpleDateFormat.format(date)
+                showToast(saveTime+"으로 저장!")
+                //데이터베이스에 저장하는 내용
+                contentValue.put("accTime",acc_time)
+                contentValue.put("saveTime",saveTime)
+                database.insert("accTimeTable",null,contentValue)
+                var query = "SELECT * FROM accTimeTable;"
+                //var c = database.rawQuery(query,null)
+                //while(c.moveToNext()){
+                //    showToast("saveTime:"+c.getString(c.getColumnIndex(("saveTime"))))
+                //}
             }
 
         }
