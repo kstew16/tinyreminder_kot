@@ -6,6 +6,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
 import android.os.SystemClock
@@ -29,13 +30,15 @@ class MainActivity : AppCompatActivity() {
     var timeTick = 0
     //val startTime: Long = SystemClock.elapsedRealtime()
 
+    //데베관련
+
 
 
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showToast("20211005 오후 9시 47분 sharedPref")
+        showToast("20211008 오후 6시 14분 INSERT")
 
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
@@ -54,10 +57,41 @@ class MainActivity : AppCompatActivity() {
         serviceIntent.putExtra("ACTIVITY_RUNNING", true)
         startService(serviceIntent)
         //데베관련
-        var dbHelper: DBHelper = DBHelper(this, "Accumulate.db", null, 1)
-        var database: SQLiteDatabase = dbHelper.writableDatabase
+
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
         var savedTerm = sharedPreferences.getInt("setTerm",15)
+
+        lateinit var dbHelper: DBHelper
+        lateinit var database: SQLiteDatabase
+        lateinit var readableDatabase: SQLiteDatabase
+        dbHelper = DBHelper(this, "Accumulate.db", null, 3)
+        database = dbHelper.writableDatabase
+        readableDatabase = dbHelper.readableDatabase
+
+        var nowMills = System.currentTimeMillis()
+        var date = Date(nowMills)
+        var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
+        var saveTime : String = simpleDateFormat.format(date)
+        //var c : Cursor = readableDatabase.query("accTimeTable", arrayOf("accTime"),"saveTime = ?", arrayOf(saveTime),null,null,null)
+        var c : Cursor? = readableDatabase.rawQuery("SELECT * FROM accTimeTable" ,null)
+        if (c!= null) {
+            c.moveToLast()
+            if(c.getString(0)==saveTime){
+                acc_time = c.getInt(1)
+                hour = acc_time / 3600
+                min = (acc_time - hour * 3600) / 60
+                sec = acc_time % 60
+                accTime!!.text = String.format("%02d", hour) + " : " + String.format(
+                    "%02d",
+                    min
+                ) + " : " + String.format("%02d", sec)
+            }
+        }
+
+
+
+
+
 
         set_hour = savedTerm/60
         set_min = savedTerm - (60*set_hour)
@@ -102,13 +136,6 @@ class MainActivity : AppCompatActivity() {
                 serviceIntent.putExtra("ACTIVITY_RUNNING", true)
                 startService(serviceIntent)
                 //데이터베이스에 설정시간 저장 SharedPref 이용
-
-                    """
-            
-                var contentValues = ContentValues()
-                contentValues.put("setTerm",setTerm)
-                database.insert("termTable",null,contentValues)
-                """
                 val editor = sharedPreferences.edit()
                 var setTerm = set_hour * 60 + set_min
                 editor.putInt("setTerm",setTerm)
@@ -155,16 +182,18 @@ class MainActivity : AppCompatActivity() {
                 var date = Date(nowMills)
                 var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
                 var saveTime : String = simpleDateFormat.format(date)
-                showToast(saveTime+"으로 저장!")
+                //showToast(saveTime+"으로 저장!")
                 //데이터베이스에 저장하는 내용
                 contentValue.put("accTime",acc_time)
                 contentValue.put("saveTime",saveTime)
-                database.insert("accTimeTable",null,contentValue)
-                var query = "SELECT * FROM accTimeTable;"
-                //var c = database.rawQuery(query,null)
-                //while(c.moveToNext()){
-                //    showToast("saveTime:"+c.getString(c.getColumnIndex(("saveTime"))))
-                //}
+                //무지성 insert가 아니라 update가 필요할듯
+                //database.replaceOrThrow("accTimeTable",null,contentValue)
+                var c : Cursor = database.query("accTimeTable",null,null,null,null,null,null)
+                database.delete("accTimeTable","saveTime=?", arrayOf(saveTime))
+                database.insertWithOnConflict("accTimeTable",null,contentValue,SQLiteDatabase.CONFLICT_REPLACE)
+                while(c.moveToNext()){
+                    showToast("saveTime:"+c.getString(c.getColumnIndex(("saveTime")))+" \naccTime:"+c.getString(c.getColumnIndex(("accTime"))))
+                }
             }
 
         }
@@ -214,7 +243,9 @@ class MainActivity : AppCompatActivity() {
         //저 죽어요
         val serviceIntent = Intent(this, TimerService::class.java)
         stopService(serviceIntent)
+        //database.close()
         super.onDestroy()
+
     }
 
     private fun showToast(message: String) {
