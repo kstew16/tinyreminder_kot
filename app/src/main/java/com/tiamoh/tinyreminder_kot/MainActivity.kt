@@ -31,9 +31,9 @@ class MainActivity : AppCompatActivity() {
     //val startTime: Long = SystemClock.elapsedRealtime()
 
     //데베관련
-
-
-
+    lateinit var dbHelper: DBHelper
+    lateinit var database: SQLiteDatabase
+    lateinit var readableDatabase: SQLiteDatabase
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,26 +56,31 @@ class MainActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, TimerService::class.java)
         serviceIntent.putExtra("ACTIVITY_RUNNING", true)
         startService(serviceIntent)
-        //데베관련
 
+        //데베관련
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
         var savedTerm = sharedPreferences.getInt("setTerm",15)
 
-        lateinit var dbHelper: DBHelper
-        lateinit var database: SQLiteDatabase
-        lateinit var readableDatabase: SQLiteDatabase
-        dbHelper = DBHelper(this, "Accumulate.db", null, 3)
+
+        //sharedPrefernce에서 알람 간격 저장해둔거 불러옴
+        set_hour = savedTerm/60
+        set_min = savedTerm - (60*set_hour)
+        setTerm.text = String.format("%02d", set_hour) + " 시간 " + String.format(
+            "%02d",
+            set_min
+        ) + " 분"
+
+        dbHelper = DBHelper(this, "Accumulate.db", null, 4)
         database = dbHelper.writableDatabase
         readableDatabase = dbHelper.readableDatabase
-
         var nowMills = System.currentTimeMillis()
         var date = Date(nowMills)
         var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
         var saveTime : String = simpleDateFormat.format(date)
-        //var c : Cursor = readableDatabase.query("accTimeTable", arrayOf("accTime"),"saveTime = ?", arrayOf(saveTime),null,null,null)
         var c : Cursor? = readableDatabase.rawQuery("SELECT * FROM accTimeTable" ,null)
         if (c!= null) {
             c.moveToLast()
+            //오늘 이름으로 저장된 누적시간이 있으면 onCreate시에 불러옴
             if(c.getString(0)==saveTime){
                 acc_time = c.getInt(1)
                 hour = acc_time / 3600
@@ -91,19 +96,9 @@ class MainActivity : AppCompatActivity() {
 
 
 
-
-
-        set_hour = savedTerm/60
-        set_min = savedTerm - (60*set_hour)
-        setTerm.text = String.format("%02d", set_hour) + " 시간 " + String.format(
-            "%02d",
-            set_min
-        ) + " 분"
-        //데이터베이스에 오늘 날짜로 저장된 것이 있으면 acc_time으로 불러와야 함함
-
-
        //알람 설정 시간 변경 버튼이 눌릴 시
         settingBtn.setOnClickListener {
+            //타임피커 다이얼로그에서 시간을 받아와서 액티비티에 띄움
             val timeDialog =
                 TimePickerDialog(
                     this, android.R.style.Theme_Holo_Light_Dialog_NoActionBar,
@@ -130,7 +125,8 @@ class MainActivity : AppCompatActivity() {
             timeDialog.window!!.setBackgroundDrawableResource(android.R.color.transparent)
             timeDialog.show()
             timeDialog.setOnDismissListener {
-                //이거 인텍트 전달해야함
+                //액티비티 실행중이라고 서비스에 알려줌 (실행중일때 타이머 데이터 보내줌)
+                //근데 이거 왜 여기서 보냄 생각해보니까? 20211008의 의문
                 val serviceIntent = Intent(this, TimerService::class.java)
                 serviceIntent.putExtra("SETTING", set_hour * 60 + set_min)
                 serviceIntent.putExtra("ACTIVITY_RUNNING", true)
@@ -149,16 +145,18 @@ class MainActivity : AppCompatActivity() {
         //토글버튼인 스타트 버튼이 눌릴 시
         startBtn.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
+                //토글 눌렸을 때 실행중이라고 알려줌
                 val serviceIntent = Intent(this, TimerService::class.java)
                 serviceIntent.putExtra("MODE", set_hour * 60 + set_min)
                 serviceIntent.putExtra("ACTIVITY_RUNNING", true)
                 startService(serviceIntent)
             } else {
+                //액티비티는 뚠뚠 오늘도 뚠뚠
                 val serviceIntent = Intent(this, TimerService::class.java)
                 serviceIntent.putExtra("MODE", 0)
                 serviceIntent.putExtra("ACTIVITY_RUNNING", true)
                 stopService(serviceIntent)
-                //TimeTick 받아와야 함 : 그거 onNewIntent로 처리했음.
+                //Service로부터 onNewIntent로 받아온 timeTick을 계산해서 액티비티에 출력
                 acc_time += timeTick
                 hour = timeTick / 3600
                 min = (timeTick - hour * 3600) / 60
@@ -177,23 +175,18 @@ class MainActivity : AppCompatActivity() {
                     min
                 ) + " : " + String.format("%02d", sec)
                 timeTick = 0
+                //데이터베이스에 오늘 이름으로 누적시간을 저장
                 var contentValue = ContentValues()
                 var nowMills = System.currentTimeMillis()
                 var date = Date(nowMills)
                 var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
                 var saveTime : String = simpleDateFormat.format(date)
-                //showToast(saveTime+"으로 저장!")
-                //데이터베이스에 저장하는 내용
                 contentValue.put("accTime",acc_time)
                 contentValue.put("saveTime",saveTime)
-                //무지성 insert가 아니라 update가 필요할듯
-                //database.replaceOrThrow("accTimeTable",null,contentValue)
                 var c : Cursor = database.query("accTimeTable",null,null,null,null,null,null)
+                //이미 오늘날짜 있으면 덮어쓰기, 없으면 만들기 : 충돌처리 덮어쓰기
                 database.delete("accTimeTable","saveTime=?", arrayOf(saveTime))
                 database.insertWithOnConflict("accTimeTable",null,contentValue,SQLiteDatabase.CONFLICT_REPLACE)
-                while(c.moveToNext()){
-                    showToast("saveTime:"+c.getString(c.getColumnIndex(("saveTime")))+" \naccTime:"+c.getString(c.getColumnIndex(("accTime"))))
-                }
             }
 
         }
@@ -243,7 +236,8 @@ class MainActivity : AppCompatActivity() {
         //저 죽어요
         val serviceIntent = Intent(this, TimerService::class.java)
         stopService(serviceIntent)
-        //database.close()
+        database.close()
+        readableDatabase.close()
         super.onDestroy()
 
     }
