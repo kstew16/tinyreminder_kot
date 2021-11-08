@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        showToast("20211008 오후 6시 14분 INSERT")
+        showToast("20211108 오후 8시 5분 초회실행")
 
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         //데베관련
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
         var savedTerm = sharedPreferences.getInt("setTerm",15)
+        val isSaved = sharedPreferences.getBoolean("isSaved",false)
 
 
         //sharedPrefernce에서 알람 간격 저장해둔거 불러옴
@@ -78,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
         var saveTime : String = simpleDateFormat.format(date)
         var c : Cursor? = readableDatabase.rawQuery("SELECT * FROM accTimeTable" ,null)
-        if (c!= null) {
+        if ((c!= null) && isSaved) {
             c.moveToLast()
             //오늘 이름으로 저장된 누적시간이 있으면 onCreate시에 불러옴
             if(c.getString(0)==saveTime){
@@ -135,6 +136,8 @@ class MainActivity : AppCompatActivity() {
                 val editor = sharedPreferences.edit()
                 var setTerm = set_hour * 60 + set_min
                 editor.putInt("setTerm",setTerm)
+                //초회 실행시 데베가 비어서 튕기는 것 방지
+                editor.putBoolean("isSaved",true)
                 editor.commit()
 
             }
