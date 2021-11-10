@@ -1,15 +1,13 @@
 package com.tiamoh.tinyreminder_kot
 
-import android.app.ActivityManager
 import android.app.TimePickerDialog
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.os.Bundle
-import android.os.SystemClock
+import android.os.PersistableBundle
 import android.widget.CompoundButton
 import android.widget.ImageButton
 import android.widget.TextView
@@ -19,8 +17,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-
-    var isServiceRun: Boolean = true
+    var isToggled: Boolean = false
+    var isServiceRun: Boolean = false
     var acc_time = 0
     var set_min: Int = 15
     var set_hour: Int = 0
@@ -38,12 +36,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         showToast("20211108 오후 8시 5분 초회실행")
 
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
         val settingBtn = findViewById<ImageButton>(R.id.settingIcon)
-
+        val graphBtn = findViewById<ImageButton>(R.id.graphIcon)
         //val myTimePicker = findViewById<View>(R.id.timepicker) as TimePicker
         val setTerm = findViewById<TextView>(R.id.setNumber)
         val accTime = findViewById<TextView>(R.id.todayNumber)
@@ -57,11 +56,17 @@ class MainActivity : AppCompatActivity() {
         serviceIntent.putExtra("ACTIVITY_RUNNING", true)
         startService(serviceIntent)
 
-        //데베관련
+        //저장된 정보들
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
         var savedTerm = sharedPreferences.getInt("setTerm",15)
         val isSaved = sharedPreferences.getBoolean("isSaved",false)
+        val isToggled = sharedPreferences.getBoolean("isToggled",false)
 
+        if(isToggled){
+            //토글된 상태에서 꺼진거면 서비스 켜진 상태로 꺼진거
+            startBtn.toggle()
+            isServiceRun=true
+        }
 
         //sharedPrefernce에서 알람 간격 저장해둔거 불러옴
         set_hour = savedTerm/60
@@ -148,6 +153,10 @@ class MainActivity : AppCompatActivity() {
         //토글버튼인 스타트 버튼이 눌릴 시
         startBtn.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
+                //토글된 상태에서 종료될 시에는 서비스가 켜져있음을 저장하기 위함
+                val editor = sharedPreferences.edit()
+                editor.putBoolean("isToggled",true)
+                editor.commit()
                 //토글 눌렸을 때 실행중이라고 알려줌
                 val serviceIntent = Intent(this, TimerService::class.java)
                 serviceIntent.putExtra("MODE", set_hour * 60 + set_min)
@@ -190,18 +199,34 @@ class MainActivity : AppCompatActivity() {
                 //이미 오늘날짜 있으면 덮어쓰기, 없으면 만들기 : 충돌처리 덮어쓰기
                 database.delete("accTimeTable","saveTime=?", arrayOf(saveTime))
                 database.insertWithOnConflict("accTimeTable",null,contentValue,SQLiteDatabase.CONFLICT_REPLACE)
+                //토글된 상태에서 종료될 시에는 서비스가 켜져있음을 저장하기 위함
+                val editor = sharedPreferences.edit()
+                editor.putBoolean("isToggled",false)
+                editor.commit()
             }
 
         }
 
-    }
+        graphBtn.setOnClickListener {
+            var graphIntent = Intent(this, GraphActivity::class.java)
+            startActivity(graphIntent)
+        }
 
-    override fun onNewIntent(intent: Intent?) {
+    }
+/*
+    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        //액티비티가 꺼지면 토글버튼이 리셋되는 점을 해결하기 위함
+        outState.putBoolean("TOGGLE",isToggled)
+        outState.putBoolean("SERVICE_RUNNING",isServiceRun)
+        super.onSaveInstanceState(outState, outPersistentState)
+    }
+*/
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         //앱 재실행시에 액티비티 데이터 튀는거 매니지용
         //여기부터 사실상 onTimeTick
-        timeTick = intent?.getIntExtra("TIME",0)?:0
-
+        timeTick = intent.getIntExtra("TIME",0)
+        isServiceRun = intent.getBooleanExtra("SERVICE_RUNNING",false)
         hour = timeTick/3600
         min = (timeTick - hour*3600)/60
         sec = timeTick - hour*3600 - min*60
@@ -235,10 +260,25 @@ class MainActivity : AppCompatActivity() {
         startService(serviceIntent)
         super.onStop()
     }
-    override fun onDestroy() {
-        //저 죽어요
+
+    override fun onPause() {
         val serviceIntent = Intent(this, TimerService::class.java)
-        stopService(serviceIntent)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", false)
+        startService(serviceIntent)
+        super.onPause()
+    }
+
+    override fun onResume() {
+        val serviceIntent = Intent(this, TimerService::class.java)
+        serviceIntent.putExtra("ACTIVITY_RUNNING", true)
+        startService(serviceIntent)
+        super.onResume()
+    }
+
+    override fun onDestroy() {
+        //생각해보니까 앱 종료시에 서비스를 죽일 필요가 없음
+        //val serviceIntent = Intent(this, TimerService::class.java)
+        //stopService(serviceIntent)
         database.close()
         readableDatabase.close()
         super.onDestroy()

@@ -138,6 +138,7 @@ class TimerService : Service() {
                             val toMainIntent = Intent(applicationContext, MainActivity::class.java)
                             toMainIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                             toMainIntent.putExtra("TIME", time_tick)
+                            toMainIntent.putExtra("SERVICE_RUNNING",true)
                             startActivity(toMainIntent)
                         }
                     }
