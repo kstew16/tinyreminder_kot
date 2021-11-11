@@ -3,28 +3,68 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/lists"
-        android:layout_width="326dp"
-        android:layout_height="134dp"
+    >
+
+    <RadioGroup
+        android:checkedButton="@id/graphDay"
+        android:layout_width="330dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_bias="0.10"
+        app:layout_constraintHorizontal_bias="0.5"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:text="일"
+            android:textAlignment="center"
+            android:id="@+id/graphDay"
+            android:layout_width="105dp"
+            android:layout_height="40dp"
+            android:background="@drawable/selector_radio_button"
+            android:textColor="@drawable/selector_radio_text"
+            android:button="@null"
+            android:layout_marginRight="7.5dp"
+            />
+
+        <RadioButton
+            android:text="주"
+            android:textAlignment="center"
+            android:id="@+id/graphWeek"
+            android:layout_width="105dp"
+            android:layout_height="40dp"
+            android:background="@drawable/selector_radio_button"
+            android:textColor="@drawable/selector_radio_text"
+            android:button="@null"
+            android:layout_marginRight="7.5dp"
+            />
+        <RadioButton
+            android:text="월"
+            android:textAlignment="center"
+            android:id="@+id/graphMonth"
+            android:layout_width="105dp"
+            android:layout_height="40dp"
+            android:background="@drawable/selector_radio_button"
+            android:textColor="@drawable/selector_radio_text"
+            android:button="@null"
+            />
+    </RadioGroup>
+
+    <com.github.mikephil.charting.charts.LineChart
+
+        android:id="@+id/lineChart"
+        android:layout_width="330dp"
+        android:layout_height="400dp"
+        android:layout_marginTop="30dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.085" />
-
-    <com.github.mikephil.charting.charts.LineChart
-
-        android:layout_width="326dp"
-
-        android:layout_height="400dp"
-        android:layout_marginTop="30dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lists" />
+        app:layout_constraintVertical_bias="0.4" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
