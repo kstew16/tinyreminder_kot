@@ -8,6 +8,7 @@
     >
 
     <RadioGroup
+        android:id="@+id/graphSelect"
         android:checkedButton="@id/graphDay"
         android:layout_width="330dp"
         android:layout_height="wrap_content"
