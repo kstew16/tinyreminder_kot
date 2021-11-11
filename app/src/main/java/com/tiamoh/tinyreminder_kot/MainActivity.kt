@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         //val myTimePicker = findViewById<View>(R.id.timepicker) as TimePicker
         val setTerm = findViewById<TextView>(R.id.setNumber)
         val accTime = findViewById<TextView>(R.id.todayNumber)
+        val dbVersion = 5
         //val timeTickView = findViewById<TextView>(R.id.clock)
 
         settingBtn.setBackgroundResource(R.drawable.settingicon)
@@ -59,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         //저장된 정보들
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
         var savedTerm = sharedPreferences.getInt("setTerm",15)
-        val isSaved = sharedPreferences.getBoolean("isSaved",false)
+        val dbSavedVer = sharedPreferences.getInt("isSaved",0)
         val isToggled = sharedPreferences.getBoolean("isToggled",false)
 
         if(isToggled){
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity() {
             set_min
         ) + " 분"
 
-        dbHelper = DBHelper(this, "Accumulate.db", null, 4)
+        dbHelper = DBHelper(this, "Accumulate.db", null, dbVersion)
         database = dbHelper.writableDatabase
         readableDatabase = dbHelper.readableDatabase
         var nowMills = System.currentTimeMillis()
@@ -84,7 +85,7 @@ class MainActivity : AppCompatActivity() {
         var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
         var saveTime : String = simpleDateFormat.format(date)
         var c : Cursor? = readableDatabase.rawQuery("SELECT * FROM accTimeTable" ,null)
-        if ((c!= null) && isSaved) {
+        if ((c!= null) && (dbSavedVer==dbVersion)) {
             c.moveToLast()
             //오늘 이름으로 저장된 누적시간이 있으면 onCreate시에 불러옴
             if(c.getString(0)==saveTime){
@@ -142,7 +143,7 @@ class MainActivity : AppCompatActivity() {
                 var setTerm = set_hour * 60 + set_min
                 editor.putInt("setTerm",setTerm)
                 //초회 실행시 데베가 비어서 튕기는 것 방지
-                editor.putBoolean("isSaved",true)
+                editor.putInt("isSaved",dbVersion)
                 editor.commit()
 
             }
@@ -188,13 +189,20 @@ class MainActivity : AppCompatActivity() {
                 ) + " : " + String.format("%02d", sec)
                 timeTick = 0
                 //데이터베이스에 오늘 이름으로 누적시간을 저장
+                val calendar = Calendar.getInstance()
                 var contentValue = ContentValues()
                 var nowMills = System.currentTimeMillis()
                 var date = Date(nowMills)
                 var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
                 var saveTime : String = simpleDateFormat.format(date)
+                var saveWeek = calendar.get(Calendar.WEEK_OF_YEAR)
+                var saveDay = calendar.get(Calendar.DAY_OF_YEAR)
+                var saveMonth = calendar.get(Calendar.MONTH)
                 contentValue.put("accTime",acc_time)
                 contentValue.put("saveTime",saveTime)
+                contentValue.put("saveMonth",saveMonth)
+                contentValue.put("saveWeek",saveWeek)
+                contentValue.put("saveDay",saveDay)
                 var c : Cursor = database.query("accTimeTable",null,null,null,null,null,null)
                 //이미 오늘날짜 있으면 덮어쓰기, 없으면 만들기 : 충돌처리 덮어쓰기
                 database.delete("accTimeTable","saveTime=?", arrayOf(saveTime))

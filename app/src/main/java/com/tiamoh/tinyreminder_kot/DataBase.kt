@@ -16,7 +16,10 @@ class DBHelper(
         var sql : String = "CREATE TABLE if not exists accTimeTable" +
                 //"(_id integer primary key autoincrement," +
                 "(saveTime text,"+
-                "accTime integer);";
+                "accTime integer," +
+                "saveMonth integer," +
+                "saveWeek integer," +
+                "saveDay integer);";
 
         db.execSQL(sql)
     }
