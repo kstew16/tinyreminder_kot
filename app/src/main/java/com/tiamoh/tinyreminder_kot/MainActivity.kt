@@ -217,6 +217,7 @@ class MainActivity : AppCompatActivity() {
 
         graphBtn.setOnClickListener {
             var graphIntent = Intent(this, GraphActivity::class.java)
+            graphIntent.putExtra("dbSavedVer",dbSavedVer)
             startActivity(graphIntent)
         }
 
