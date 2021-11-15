@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        showToast("20211108 오후 8시 5분 초회실행")
+        showToast("20211115 오후 8시 8분 그래프")
 
         setContentView(R.layout.activity_main)
         val startBtn = findViewById<CompoundButton>(R.id.startButton)
@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, TimerService::class.java)
         serviceIntent.putExtra("ACTIVITY_RUNNING", true)
         startService(serviceIntent)
+
 
         //저장된 정보들
         val sharedPreferences = getPreferences(Context.MODE_PRIVATE)
@@ -142,8 +143,6 @@ class MainActivity : AppCompatActivity() {
                 val editor = sharedPreferences.edit()
                 var setTerm = set_hour * 60 + set_min
                 editor.putInt("setTerm",setTerm)
-                //초회 실행시 데베가 비어서 튕기는 것 방지
-                editor.putInt("isSaved",dbVersion)
                 editor.commit()
 
             }
@@ -210,6 +209,10 @@ class MainActivity : AppCompatActivity() {
                 //토글된 상태에서 종료될 시에는 서비스가 켜져있음을 저장하기 위함
                 val editor = sharedPreferences.edit()
                 editor.putBoolean("isToggled",false)
+
+                //초회 실행시 데베가 비어서 튕기는 것 방지
+                editor.putInt("isSaved",dbVersion)
+
                 editor.commit()
             }
 
