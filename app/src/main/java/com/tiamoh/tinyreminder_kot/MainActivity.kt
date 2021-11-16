@@ -115,6 +115,8 @@ class MainActivity : AppCompatActivity() {
                         set_min = minute
                         if (set_hour == 0 && set_min == 0) {
                             showToast("시간 간격은 0분이 될 수 없습니다.")
+                            set_hour = savedTerm/60
+                            set_min = savedTerm - (set_hour*60)
                         } else {
                             showToast(
                                 String.format(
@@ -133,17 +135,23 @@ class MainActivity : AppCompatActivity() {
             timeDialog.window!!.setBackgroundDrawableResource(android.R.color.transparent)
             timeDialog.show()
             timeDialog.setOnDismissListener {
-                //액티비티 실행중이라고 서비스에 알려줌 (실행중일때 타이머 데이터 보내줌)
-                //근데 이거 왜 여기서 보냄 생각해보니까? 20211008의 의문
-                val serviceIntent = Intent(this, TimerService::class.java)
-                serviceIntent.putExtra("SETTING", set_hour * 60 + set_min)
-                serviceIntent.putExtra("ACTIVITY_RUNNING", true)
-                startService(serviceIntent)
-                //데이터베이스에 설정시간 저장 SharedPref 이용
-                val editor = sharedPreferences.edit()
-                var setTerm = set_hour * 60 + set_min
-                editor.putInt("setTerm",setTerm)
-                editor.commit()
+                // 0 분 알려주면 큰일나
+                // 사실 0분 세팅 안되게 위에서 아예 셋팅해놨는데 오류뜨면 아래에서 MODE로 텀 알려주는것도 고쳐야해
+                if(!(set_hour == 0 && set_min == 0)) {
+                    //데이터베이스에 설정시간 저장 SharedPref 이용
+                    val editor = sharedPreferences.edit()
+                    var setTerm = set_hour * 60 + set_min
+                    editor.putInt("setTerm", setTerm)
+                    editor.commit()
+
+                    // 액티비티 실행중이라고 서비스에 알려줌 (실행중일때 타이머 데이터 보내줌)
+                    // 근데 이거 왜 여기서 보냄 생각해보니까? 20211008의 의문
+                    // 시간간격 정해졌을때 보내는거자너 뭐가문제야 20211116의 답변
+                    val serviceIntent = Intent(this, TimerService::class.java)
+                    serviceIntent.putExtra("SETTING", set_hour * 60 + set_min)
+                    serviceIntent.putExtra("ACTIVITY_RUNNING", true)
+                    startService(serviceIntent)
+                }
 
             }
 

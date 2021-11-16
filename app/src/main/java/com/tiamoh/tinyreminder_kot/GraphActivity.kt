@@ -144,7 +144,7 @@ class GraphActivity : AppCompatActivity() {
         initBarChart(barChart)
         barChart.setScaleEnabled(false)
         val tableList = ArrayList<Int>()
-        val timeList = ArrayList<Int>()
+        val timeList = ArrayList<Float>()
         val entries: ArrayList<BarEntry> = ArrayList()
         val title = "누적 시간"
         val calendar = Calendar.getInstance()
@@ -169,18 +169,31 @@ class GraphActivity : AppCompatActivity() {
                 if(c!=null){
 
                     c.moveToLast()
-                    while(c!=null||count<5){
+                    var lastLable = c.getString(0).toInt()
+                    var previousDay = lastLable%100 +1
+
+                    while(c!=null&&count<5){
                         //데이터 5개 까지만 거꾸로 읽어 옴
                         var tableLable = c.getString(0).toInt()
                         var tableDay = tableLable%100
-                        tableList.add(tableDay)
-                        timeList.add(c.getInt(1))
-                        count += 1
-                        if(!c.isFirst){
-                            c.moveToPrevious()}
-                        else{
-                            break
+                        if (tableDay + 1 != previousDay){
+                            //저장되지 않은 날 있으면 0 추가해줌
+                            tableList.add(previousDay-1)
+                            timeList.add(0F)
+                            previousDay -= 1
                         }
+                        else {
+                            tableList.add(tableDay)
+                            var savedSecond = (c.getInt(1).toFloat())/60
+                            timeList.add(savedSecond)
+                            previousDay = tableDay
+                            if (!c.isFirst) {
+                                c.moveToPrevious()
+                            } else {
+                                break
+                            }
+                        }
+                        count += 1
                     }
                 }
                 // 끌어온 데이터를 추가함
