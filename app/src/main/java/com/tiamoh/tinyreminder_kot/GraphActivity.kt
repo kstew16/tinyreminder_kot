@@ -13,9 +13,12 @@ import com.github.mikephil.charting.components.*
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.formatter.ValueFormatter
+import java.lang.Math.round
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.math.roundToInt
 
 class GraphActivity : AppCompatActivity() {
 
@@ -65,6 +68,7 @@ class GraphActivity : AppCompatActivity() {
     }
 
     private fun initBarDataSet(barDataSet: BarDataSet){
+
         barDataSet.color = Color.parseColor(THEME_PURPLE)
         //Setting the size of the form in the legend
         barDataSet.formSize = 15f
@@ -72,9 +76,18 @@ class GraphActivity : AppCompatActivity() {
         barDataSet.setDrawValues(true)
         //setting the text size of the value of the bar
         barDataSet.valueTextSize = 12f
+        //y축 데이터값(분) 소숫점 첫재짜리에서 반올림
+        val valueFormatter: ValueFormatter = object : ValueFormatter(){
+            override fun getFormattedValue(value: Float): String {
+                val returnVal =((value*10).roundToInt().toFloat())/10
+                return "" + returnVal
+            }
+        }
+
+        barDataSet.valueFormatter = valueFormatter
     }
 
-    private fun initBarChart(barChart: BarChart){
+    private fun initBarChart(barChart: BarChart,graphIndex: Int){
         // 회색 배경 삭제
         barChart.setDrawGridBackground(false)
         // 막대그래프 그림자 삭제
@@ -86,7 +99,7 @@ class GraphActivity : AppCompatActivity() {
         val description = Description()
         description.text = "단위 : 분"
         description.textSize = 10f
-        description.isEnabled = true
+        description.isEnabled = false
         barChart.description = description
 
         //X, Y 바의 애니메이션 효과
@@ -95,7 +108,7 @@ class GraphActivity : AppCompatActivity() {
 
 
         //바텀 좌표 값
-        val xAxis: XAxis = barChart.getXAxis()
+        val xAxis: XAxis = barChart.xAxis
         //change the position of x-axis to the bottom
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         //set the horizontal distance of the grid line
@@ -106,6 +119,38 @@ class GraphActivity : AppCompatActivity() {
         xAxis.setDrawAxisLine(false)
         //hiding the vertical grid lines, default true if not set
         xAxis.setDrawGridLines(false)
+        val valueFormatterDay: ValueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                return "${value.toInt()} 일"
+            }
+        }
+        val valueFormatterWeek: ValueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                return if(value.toInt()==0){
+                    "이번 주"
+                } else {
+                    "${value.toInt()} 주 전"
+                }
+            }
+        }
+        val valueFormatterMonth: ValueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                return "${value.toInt()} 월"
+            }
+        }
+        when(graphIndex){
+            0->{
+                xAxis.valueFormatter = valueFormatterDay
+            }
+            1->{
+                xAxis.valueFormatter = valueFormatterWeek
+            }
+            2->{
+                xAxis.valueFormatter = valueFormatterMonth
+            }
+
+        }
+
 
 
         //좌측 값 hiding the left y-axis line, default true if not set
@@ -141,19 +186,24 @@ class GraphActivity : AppCompatActivity() {
 
 
     private fun setBarChart(barChart: BarChart, graphIndex: Int){
-        initBarChart(barChart)
+        initBarChart(barChart, graphIndex)
         barChart.setScaleEnabled(false)
         val tableList = ArrayList<Int>()
         val timeList = ArrayList<Float>()
+        val xAxisLable = ArrayList<String>()
         val entries: ArrayList<BarEntry> = ArrayList()
-        val title = "누적 시간"
+        val title = "기록된 시간 (분)"
         val calendar = Calendar.getInstance()
         var thisWeek = calendar.get(Calendar.WEEK_OF_YEAR)
+        var thisMweek = calendar.get(Calendar.WEEK_OF_MONTH)
         var thisDay = calendar.get(Calendar.DAY_OF_YEAR)
         var thisMonth = calendar.get(Calendar.MONTH)
+        var nowMills = System.currentTimeMillis()
+        var date = Date(nowMills)
+        var simpleDateFormat : SimpleDateFormat = SimpleDateFormat("yyyyMMdd")
+        var saveTime : String = simpleDateFormat.format(date)
 
         // 데이터베이스로 로드하는 부분, 유효성 체크는 메소드 실행할 때 했음
-
 
 
 
@@ -172,14 +222,15 @@ class GraphActivity : AppCompatActivity() {
                     var lastLable = c.getString(0).toInt()
                     var previousDay = lastLable%100 +1
 
-                    while(c!=null&&count<5){
-                        //데이터 5개 까지만 거꾸로 읽어 옴
+                    while(c!=null&&count<7){
+                        //데이터 7개 까지만 거꾸로 읽어 옴
                         var tableLable = c.getString(0).toInt()
                         var tableDay = tableLable%100
                         if (tableDay + 1 != previousDay){
                             //저장되지 않은 날 있으면 0 추가해줌
                             tableList.add(previousDay-1)
                             timeList.add(0F)
+                            xAxisLable.add((previousDay-1).toString()+" 일")
                             previousDay -= 1
                         }
                         else {
@@ -198,13 +249,13 @@ class GraphActivity : AppCompatActivity() {
                 }
                 // 끌어온 데이터를 추가함
                 for (i in timeList.size-1 downTo 0) {
-                    val barEntry = BarEntry(tableList[i].toFloat(), timeList[i].toFloat())
+                    val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
                     entries.add(barEntry)
                 }
             }
 
             1 -> {
-            //Week
+                //Week
 
             }
             2 -> {
@@ -213,14 +264,6 @@ class GraphActivity : AppCompatActivity() {
 
             }
         }
-
-
-
-        """
-        for (i in 0..5){
-            timeList.add(i*100)
-        }
-        """
 
 
         val barDataSet = BarDataSet(entries, title)
