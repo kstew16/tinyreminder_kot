@@ -29,6 +29,7 @@ class GraphActivity : AppCompatActivity() {
     private val THEME_BLUE = "#91ADED"
     private val THEME_GRAY = "#566270"
     private val dbVersion=5
+    private val DATACOUNT = 7
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setContentView(R.layout.activity_graph)
@@ -121,21 +122,29 @@ class GraphActivity : AppCompatActivity() {
         xAxis.setDrawGridLines(false)
         val valueFormatterDay: ValueFormatter = object : ValueFormatter() {
             override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-                return "${value.toInt()} 일"
+                return if(value.toInt()==DATACOUNT){
+                    "오늘"
+                } else {
+                    "${DATACOUNT-value.toInt()} 일 전"
+                }
             }
         }
         val valueFormatterWeek: ValueFormatter = object : ValueFormatter() {
             override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-                return if(value.toInt()==0){
+                return if(value.toInt()==DATACOUNT){
                     "이번 주"
                 } else {
-                    "${value.toInt()} 주 전"
+                    "${DATACOUNT-value.toInt()} 주 전"
                 }
             }
         }
         val valueFormatterMonth: ValueFormatter = object : ValueFormatter() {
             override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-                return "${value.toInt()} 월"
+                return if(value.toInt()==DATACOUNT){
+                    "이번 달"
+                } else {
+                    "${DATACOUNT-value.toInt()} 달 전"
+                }
             }
         }
         when(graphIndex){
@@ -190,13 +199,11 @@ class GraphActivity : AppCompatActivity() {
         barChart.setScaleEnabled(false)
         val tableList = ArrayList<Int>()
         val timeList = ArrayList<Float>()
-        val xAxisLable = ArrayList<String>()
+        //val xAxisLable = ArrayList<String>()
         val entries: ArrayList<BarEntry> = ArrayList()
         val title = "기록된 시간 (분)"
         val calendar = Calendar.getInstance()
         var thisWeek = calendar.get(Calendar.WEEK_OF_YEAR)
-        var thisMweek = calendar.get(Calendar.WEEK_OF_MONTH)
-        var thisDay = calendar.get(Calendar.DAY_OF_YEAR)
         var thisMonth = calendar.get(Calendar.MONTH)
         var nowMills = System.currentTimeMillis()
         var date = Date(nowMills)
@@ -219,22 +226,21 @@ class GraphActivity : AppCompatActivity() {
                 if(c!=null){
 
                     c.moveToLast()
-                    var lastLable = c.getString(0).toInt()
-                    var previousDay = lastLable%100 +1
+                    var lastDay = c.getInt(4)
+                    var previousDay = lastDay +1
 
-                    while(c!=null&&count<7){
+                    while(c!=null&&count<DATACOUNT+1){
                         //데이터 7개 까지만 거꾸로 읽어 옴
-                        var tableLable = c.getString(0).toInt()
-                        var tableDay = tableLable%100
+                        var tableDay = c.getInt(4)
                         if (tableDay + 1 != previousDay){
                             //저장되지 않은 날 있으면 0 추가해줌
-                            tableList.add(previousDay-1)
+                            tableList.add(DATACOUNT-count)
                             timeList.add(0F)
-                            xAxisLable.add((previousDay-1).toString()+" 일")
+                            //xAxisLable.add((previousDay-1).toString()+" 일")
                             previousDay -= 1
                         }
                         else {
-                            tableList.add(tableDay)
+                            tableList.add(DATACOUNT-count)
                             var savedSecond = (c.getInt(1).toFloat())/60
                             timeList.add(savedSecond)
                             previousDay = tableDay
@@ -249,6 +255,8 @@ class GraphActivity : AppCompatActivity() {
                 }
                 // 끌어온 데이터를 추가함
                 for (i in timeList.size-1 downTo 0) {
+                }
+                for (i in 0 until timeList.size-1){
                     val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
                     entries.add(barEntry)
                 }
@@ -256,11 +264,55 @@ class GraphActivity : AppCompatActivity() {
 
             1 -> {
                 //Week
+                // 0주전, 1주전, ....
+                // 쿼리문 작성에 템플릿 리터럴 이용
+                //커서를 통해 DB에서 데이터 끌어옴
+                // 7주보다 덜 된 자료들을 불러와 오래 된 것부터 나열
+                val startWeek = thisWeek - (DATACOUNT-1)
+                for(wIndex in startWeek until thisWeek+1){
+                    var c : Cursor? = readableDatabase.rawQuery(
+                        "SELECT sum(accTime) FROM accTimeTable WHERE saveWeek==$wIndex",
+                        null
+                    )
+                    if(c!=null && c.count>0){
+                        c.moveToFirst()
+                        // 지금 overflow 이슈 있을 것임
+                        tableList.add((DATACOUNT)-(thisWeek-wIndex))
+                        timeList.add(c.getInt(0).toFloat()/60)
+                    }
+                }
+
+                // 끌어온 데이터를 추가함
+                for (i in timeList.size-1 downTo 0) {
+                    val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
+                    entries.add(barEntry)
+                }
+
 
             }
             2 -> {
-            //Month
+                //Month
+                //1월,2월...
+                // 주랑 월은 Month
+                val startMonth = thisMonth - (DATACOUNT-1)
+                for(mIndex in startMonth until thisMonth+1){
+                    var c : Cursor? = readableDatabase.rawQuery(
+                        "SELECT sum(accTime) FROM accTimeTable WHERE saveMonth==$mIndex",
+                        null
+                    )
+                    if(c!=null && c.count>0){
+                        c.moveToFirst()
+                        //
+                        tableList.add((DATACOUNT)-(thisMonth-mIndex))
+                        timeList.add(c.getInt(0).toFloat()/60)
+                    }
+                }
 
+                // 끌어온 데이터를 추가함
+                for (i in timeList.size-1 downTo 0) {
+                    val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
+                    entries.add(barEntry)
+                }
 
             }
         }
