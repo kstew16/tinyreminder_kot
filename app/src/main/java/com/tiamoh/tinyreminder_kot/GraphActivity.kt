@@ -255,11 +255,14 @@ class GraphActivity : AppCompatActivity() {
                 }
                 // 끌어온 데이터를 추가함
                 for (i in timeList.size-1 downTo 0) {
-                }
-                for (i in 0 until timeList.size-1){
                     val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
                     entries.add(barEntry)
                 }
+                //이거 에러나는데?
+                //for (i in 0 until timeList.size-1){
+                //    val barEntry = BarEntry(tableList[i].toFloat(), timeList[i])
+                //    entries.add(barEntry)
+                //}
             }
 
             1 -> {
